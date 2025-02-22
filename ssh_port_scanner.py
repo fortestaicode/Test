@@ -14,17 +14,16 @@ class SSHPortScanner:
             return [line.strip() for line in file.readlines()]
 
     def scan_port(self, ip, port):
-        result = f"{ip}:{port} "
         try:
             sock = socket.create_connection((ip, port), timeout=1)
             sock.close()
-            result += "is open"
+            result = f"{ip}:{port}"
+            self.lock.acquire()
+            with open(self.output_file, 'a') as file:
+                file.write(result + '\n')
+            self.lock.release()
         except (socket.timeout, socket.error):
-            result += "is closed"
-        self.lock.acquire()
-        with open(self.output_file, 'a') as file:
-            file.write(result + '\n')
-        self.lock.release()
+            pass
 
     def run(self):
         servers = self.load_servers()
@@ -39,6 +38,6 @@ class SSHPortScanner:
 
 if __name__ == "__main__":
     input_file = "servers.txt"
-    output_file = "scan_results.txt"
+    output_file = "open_ssh_ports.txt"
     scanner = SSHPortScanner(input_file, output_file)
     scanner.run()
