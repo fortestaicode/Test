@@ -1,6 +1,7 @@
 import subprocess
 import json
 import logging
+import ipaddress
 
 # إعداد تسجيل الأخطاء
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -15,6 +16,13 @@ class SSHPortScannerMasscan:
     def load_servers(self):
         with open(self.input_file, 'r') as file:
             return [line.strip() for line in file.readlines()]
+
+    def is_valid_ip(self, ip):
+        try:
+            ipaddress.ip_address(ip)
+            return True
+        except ValueError:
+            return False
 
     def scan_ports(self, ip):
         try:
@@ -32,11 +40,14 @@ class SSHPortScannerMasscan:
         servers = self.load_servers()
         with open(self.output_file, 'w') as file:
             for server in servers:
-                results = self.scan_ports(server)
-                for result in results:
-                    if result['ports'][0]['port'] == 22:
-                        logging.info(f"Found open SSH port on {server}:{result['ports'][0]['port']}")
-                        file.write(f"{server}:{result['ports'][0]['port']}\n")
+                if self.is_valid_ip(server):
+                    results = self.scan_ports(server)
+                    for result in results:
+                        if result['ports'][0]['port'] == 22:
+                            logging.info(f"Found open SSH port on {server}:{result['ports'][0]['port']}")
+                            file.write(f"{server}:{result['ports'][0]['port']}\n")
+                else:
+                    logging.warning(f"Invalid IP address: {server}")
 
 if __name__ == "__main__":
     input_file = "servers.txt"
